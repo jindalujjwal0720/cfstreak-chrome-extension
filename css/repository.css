@@ -1,0 +1,32 @@
+#potd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#potd-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#potd-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+#potd-table th {
+  padding: 12px 8px;
+  text-align: left;
+  background-color: #f2f2f2;
+  color: black;
+  border: 1px solid #ddd;
+}
+
+#potd-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#potd-heading span {
+  display: flex;
+  align-items: center;
+}
