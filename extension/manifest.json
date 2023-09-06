@@ -1,7 +1,7 @@
 {
   "name": "CFStreak",
   "description": "A chrome extension to track your codeforces streak and provide you daily with random problems to solve.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "manifest_version": 3,
   "web_accessible_resources": [
     {

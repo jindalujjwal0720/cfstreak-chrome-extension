@@ -251,10 +251,10 @@ const createProblemTable = (problems, solved) => {
     const td1 = document.createElement("td");
     td1.innerText =
       level[level.length - 1] === "1"
-        ? "Level 1"
+        ? "Novice"
         : level[level.length - 1] === "2"
-        ? "Level 2"
-        : "Level 3";
+        ? "Expert"
+        : "Master";
     const td2 = document.createElement("td");
     const a = document.createElement("a");
     a.href = `https://codeforces.com/problemset/problem/${problems[level].contestId}/${problems[level].index}`;
