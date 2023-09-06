@@ -171,6 +171,7 @@ const countStreak = async () => {
       return data.result;
     });
   let today = new Date().toISOString().split("T")[0];
+  // moving to yesterday
   today = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0];
@@ -216,6 +217,14 @@ const countStreak = async () => {
       .toISOString()
       .split("T")[0];
   }
+
+  if (!solved) await getProblemsData();
+
+  // increment streak count if any of today's problems are solved
+  if (solved?.level1 || solved?.level2 || solved?.level3) {
+    streakCount++;
+  }
+
   return streakCount;
 };
 
@@ -242,10 +251,10 @@ const createProblemTable = (problems, solved) => {
     const td1 = document.createElement("td");
     td1.innerText =
       level[level.length - 1] === "1"
-        ? "Easy"
+        ? "Level 1"
         : level[level.length - 1] === "2"
-        ? "Medium"
-        : "Hard";
+        ? "Level 2"
+        : "Level 3";
     const td2 = document.createElement("td");
     const a = document.createElement("a");
     a.href = `https://codeforces.com/problemset/problem/${problems[level].contestId}/${problems[level].index}`;
@@ -276,13 +285,92 @@ const createProblemTable = (problems, solved) => {
   return table;
 };
 
+const createPastProblemsTable = (dailyProblems, submissions) => {
+  const table = document.createElement("table");
+  table.classList.add("problems");
+  table.id = "potd-table";
+  table.style.width = "100%";
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+
+  const headers = ["Date", "level 1", "level 2", "level 3"];
+  headers.forEach((header) => {
+    const th = document.createElement("th");
+    th.innerText = header;
+    thead.appendChild(th);
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+  // moving to yesterday
+  let date = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+  let maxIterations = 3000;
+  while (maxIterations-- > 0) {
+    if (
+      !dailyProblems.level1[date] &&
+      !dailyProblems.level2[date] &&
+      !dailyProblems.level3[date]
+    ) {
+      continue;
+    }
+    const tr = document.createElement("tr");
+    const td1 = document.createElement("td");
+    td1.innerText = date;
+    const td2 = document.createElement("td");
+    const td3 = document.createElement("td");
+    const td4 = document.createElement("td");
+    td2.innerHTML = `<a href="https://codeforces.com/problemset/problem/${dailyProblems.level1[date]}">${dailyProblems.level1[date]}</a>`;
+    td3.innerHTML = `<a href="https://codeforces.com/problemset/problem/${dailyProblems.level2[date]}">${dailyProblems.level2[date]}</a>`;
+    td4.innerHTML = `<a href="https://codeforces.com/problemset/problem/${dailyProblems.level3[date]}">${dailyProblems.level3[date]}</a>`;
+    submissions.forEach((submission) => {
+      if (submission.creationTimeSeconds * 1000 > new Date().getTime()) return;
+      if (
+        submission.problem.contestId ==
+          dailyProblems.level1[date]?.split("/")[0] &&
+        submission.problem.index == dailyProblems.level1[date]?.split("/")[1] &&
+        submission.verdict === "OK"
+      ) {
+        td2.classList.add("solved");
+      } else if (
+        submission.problem.contestId ==
+          dailyProblems.level2[date]?.split("/")[0] &&
+        submission.problem.index == dailyProblems.level2[date]?.split("/")[1] &&
+        submission.verdict === "OK"
+      ) {
+        td3.classList.add("solved");
+      } else if (
+        submission.problem.contestId ==
+          dailyProblems.level3[date]?.split("/")[0] &&
+        submission.problem.index == dailyProblems.level3[date]?.split("/")[1] &&
+        submission.verdict === "OK"
+      ) {
+        td4.classList.add("solved");
+      }
+    });
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
+    tr.appendChild(td4);
+    tbody.appendChild(tr);
+    date = new Date(new Date(date).getTime() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+  }
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+
+  return table;
+};
+
 const addProblemsToProfile = async () => {
   // get the div roundbox which directly contains the div with userbox class
   const userbox = document.querySelector(".roundbox > .userbox");
   const roundbox = userbox.parentElement;
   const div = document.createElement("div");
   div.classList.add("roundbox", "borderTopRound", "borderBottomRound");
-  div.style.marginTop = "10px";
+  div.style.marginTop = "16px";
   div.style.padding = "1em";
   const heading = document.createElement("h4");
   heading.id = "potd-heading";
@@ -323,30 +411,78 @@ const addProblemsToProfile = async () => {
   });
 };
 
-const addPOTDBannerToProfile = async () => {
+const addPastProblemsToProfile = async () => {
+  // get the div roundbox which directly contains the div with userbox class
   const userbox = document.querySelector(".roundbox > .userbox");
   const roundbox = userbox.parentElement;
-  const div = document.createElement("div");
-  div.classList.add("roundbox", "borderTopRound", "borderBottomRound");
-  div.style.marginBottom = "10px";
-  div.style.padding = "1em";
+  const details = document.createElement("details");
+  details.classList.add("roundbox", "borderTopRound", "borderBottomRound");
+  details.style.padding = "1em";
+  details.style.marginTop = "16px";
   const heading = document.createElement("h4");
-  heading.innerText = "Problem of the day";
-  heading.style.marginBottom = "1em";
-  div.appendChild(heading);
+  heading.id = "potd-heading";
+  heading.innerText = "Show Past POTDs";
 
-  await getProblemsData();
+  const summary = document.createElement("summary");
+  summary.appendChild(heading);
+  details.appendChild(summary);
+  summary.style.cursor = "pointer";
+  summary.style.outline = "none";
+  summary.style.userSelect = "none";
+  summary.style.display = "flex";
+
+  // create a loading gif
+  const loading = document.createElement("div");
+  loading.style.display = "flex";
+  loading.style.justifyContent = "center";
+  loading.style.alignItems = "center";
+  loading.style.marginBottom = "1em";
+  const img = document.createElement("img");
+  img.src = chrome.runtime.getURL("assets/loading.gif");
+  img.style.width = "30px";
+  img.style.height = "30px";
+  loading.appendChild(img);
+  details.appendChild(loading);
+  // insert the div after the roundbox div
+  roundbox.parentElement.insertBefore(details, roundbox.nextSibling);
+
+  fetch(chrome.runtime.getURL("assets/problems.json"))
+    .then((response) => response.json())
+    .then((dailyProblems) => {
+      const username = window.location.href.split("/")[4];
+      const submissionsURL = `https://codeforces.com/api/user.status?handle=${username}`;
+      fetch(submissionsURL)
+        .then((response) => response.json())
+        .then((data) => {
+          const submissions = data.result.filter((submission) => {
+            const date = new Date(submission.creationTimeSeconds * 1000)
+              .toISOString()
+              .split("T")[0];
+            const today = new Date().toISOString().split("T")[0];
+            return date !== today;
+          });
+          const table = createPastProblemsTable(dailyProblems, submissions);
+          table.style.marginTop = "1em";
+          details.appendChild(table);
+          loading.style.display = "none";
+        });
+    });
 };
 
 if (window.location.href.split("/")[3] === "profile") {
-  getUserProfile().then((data) => {
-    console.log(data);
-  });
-  getProblemsForToday().then((data) => {
-    console.table(data);
-  });
-  getUserSubmissionsToday().then((data) => {
-    console.table(data);
-  });
-  addProblemsToProfile();
+  // getUserProfile().then((data) => {
+  //   console.log(data);
+  // });
+  // getProblemsForToday().then((data) => {
+  //   console.table(data);
+  // });
+  // getUserSubmissionsToday().then((data) => {
+  //   console.table(data);
+  // });
+  try {
+    addPastProblemsToProfile();
+    addProblemsToProfile();
+  } catch (error) {
+    console.log(error);
+  }
 }
